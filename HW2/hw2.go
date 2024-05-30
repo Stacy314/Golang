@@ -15,10 +15,11 @@ func (a *Animal) Catch() {
         if rand.Intn(2) == 0 { 
             a.Caught = true
             fmt.Printf("Caught %s\n", a.Name)
-        } else {
-            fmt.Printf("Failed to catch %s\n", a.Name)
-        }
+			return
+       	} 
+        fmt.Printf("Failed to catch %s\n", a.Name)
     }
+
 }
 
 type Cage struct {
@@ -39,11 +40,9 @@ type Zookeeper struct {
 
 func (z *Zookeeper) GatherAnimals() {
     fmt.Printf("Zookeeper %s starts gathering animals\n", z.Name)
-    for i := 0; i < len(z.Animals); i++ {
-        animal := z.Animals[i]
+    for _, animal := range z.Animals {
         animal.Catch()
-        for j := 0; j < len(z.Cages); j++ {
-            cage := z.Cages[j]
+        for _, cage := range z.Cages {
             if cage.Animal == nil {
                 cage.PlaceAnimal(animal)
                 break
