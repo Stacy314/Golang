@@ -5,31 +5,31 @@ import (
     "sort"
 )
 
-type Item struct {
-    ID int
+type item struct {
+    id int
 }
 
-func uniqueItems(items []Item) []Item {
-    seen := make(map[int]bool)
-    var unique []Item
-    for _, item := range items {
-        if !seen[item.ID] {
-            seen[item.ID] = true
-            unique = append(unique, item)
+func uniqueItems(items []item) []item {
+    seen := make(map[int]struct{})
+    var unique []item
+    for _, itm := range items {
+        if _, found := seen[itm.id]; !found {
+            seen[itm.id] = struct{}{}
+            unique = append(unique, itm)
         }
     }
     sort.Slice(unique, func(i, j int) bool {
-        return unique[i].ID < unique[j].ID
+        return unique[i].id < unique[j].id
     })
     return unique
 }
 
 func main() {
-    items := []Item{{ID: 3}, {ID: 2}, {ID: 1}, {ID: 2}}
+    items := []item{{id: 3}, {id: 2}, {id: 1}, {id: 2}}
     unique := uniqueItems(items)
     fmt.Println("Unique Items sorted by ID:")
-    for _, item := range unique {
-        fmt.Printf("{ID: %d} ", item.ID)
+    for _, itm := range unique {
+        fmt.Printf("{ID: %d} ", itm.id)
     }
     fmt.Println()
 }

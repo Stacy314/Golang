@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strings"
 )
 
 func readLines(filePath string) ([]string, error) {
@@ -23,20 +24,17 @@ func readLines(filePath string) ([]string, error) {
 
 func searchInText(lines []string, searchString string) []string {
 	var results []string
+	searchString = strings.ToLower(searchString)
 	for _, line := range lines {
-		if contains(line, searchString) {
+		if strings.Contains(strings.ToLower(line), searchString) {
 			results = append(results, line)
 		}
 	}
 	return results
 }
 
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && s[0:len(substr)] == substr || len(s) > len(substr) && contains(s[1:], substr)
-}
-
 func main() {
-	filePath := "text.txt" 
+	filePath := "text.txt"
 	lines, err := readLines(filePath)
 	if err != nil {
 		fmt.Println("Error reading file:", err)
