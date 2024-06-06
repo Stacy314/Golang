@@ -1,3 +1,8 @@
+/*Implement search for a text editor (similar to the 
+task in HW4) using the word index in the map. That is,
+for a text editor, implement the methods “index text 
+by word” and “search all lines by word”.*/
+
 package main
 
 import (
