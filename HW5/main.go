@@ -7,33 +7,43 @@ import (
 	"strings"
 )
 
-func indexText(lines []string) map[string][]int {
-	index := make(map[string][]int)
-	for i, line := range lines {
+type TextIndex struct {
+	lines []string
+	index map[string][]int
+}
+
+func NewTextIndex(lines []string) *TextIndex {
+	ti := &TextIndex{
+		lines: lines,
+		index: make(map[string][]int),
+	}
+	ti.buildIndex()
+	return ti
+}
+
+func (ti *TextIndex) buildIndex() {
+	for i, line := range ti.lines {
 		words := strings.Fields(line)
 		for _, word := range words {
 			word = strings.ToLower(strings.Trim(word, ".,!?\""))
-			index[word] = append(index[word], i)
+			ti.index[word] = append(ti.index[word], i)
 		}
 	}
-	return index
 }
 
-
-func searchByWord(index map[string][]int, lines []string, searchWord string) []string {
+func (ti *TextIndex) Search(searchWord string) []string {
 	searchWord = strings.ToLower(searchWord)
-	lineNumbers, found := index[searchWord]
+	lineNumbers, found := ti.index[searchWord]
 	if !found {
 		return []string{}
 	}
 
 	var results []string
 	for _, lineNumber := range lineNumbers {
-		results = append(results, lines[lineNumber])
+		results = append(results, ti.lines[lineNumber])
 	}
 	return results
 }
-
 
 func readLines(filePath string) ([]string, error) {
 	file, err := os.Open(filePath)
@@ -51,7 +61,7 @@ func readLines(filePath string) ([]string, error) {
 }
 
 func main() {
-	filePath := "text.txt" 
+	filePath := "text.txt"
 
 	lines, err := readLines(filePath)
 	if err != nil {
@@ -60,17 +70,17 @@ func main() {
 		return
 	}
 
-	index := indexText(lines)
+	textIndex := NewTextIndex(lines)
 
 	fmt.Println("Text loaded from file:")
-	for _, line := range lines {
+	for _, line := range textIndex.lines {
 		fmt.Println(line)
 	}
 
 	var searchWord string
 	fmt.Print("Enter search word: ")
 	fmt.Scanln(&searchWord)
-	results := searchByWord(index, lines, searchWord)
+	results := textIndex.Search(searchWord)
 
 	if len(results) > 0 {
 		fmt.Println("Search results:")
