@@ -1,3 +1,15 @@
+/*Create a structure type that contains one field 
+(for example, `ID`). Write a function that takes 
+as input a slice with elements of the created type,
+and returns a slice of the same type with only 
+unique values (structures with duplicate field 
+values are discarded). The result of the function 
+should be sorted in ascending order of the structure 
+field values. Additional conditions: Do not use 
+libraries to search for unique values. Use the 
+capabilities of the standard `sort` library for 
+sorting. */
+
 package main
 
 import (

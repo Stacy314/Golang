@@ -1,3 +1,7 @@
+/*Write your own/not your own biography, using all 
+the types and possibilities discussed in class. 
+Display it on the screen. 2*/
+
 package main
 
 import (

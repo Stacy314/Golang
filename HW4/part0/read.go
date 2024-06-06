@@ -1,3 +1,12 @@
+/*Search for a text editor. Create a slice string with 
+the text that the user entered into the text editor. 
+Write a function that takes a search string as input 
+and finds all lines in the text editor that contain the 
+search string.  Using this function, add the ability to 
+search for text in the text editor and display all the 
+relevant results. Advanced task: initialize the text in 
+the editor not through the program code, but by reading 
+lines of text from a file.*/
 package main
 
 import (

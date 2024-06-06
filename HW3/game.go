@@ -1,3 +1,5 @@
+//Develop a text quest game “New World”.
+
 package main
 
 import (
