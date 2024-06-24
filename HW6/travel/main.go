@@ -8,25 +8,25 @@ the route”. Now your traveler (“Passenger”) has to go through
 this route and display his or her journey on the screen. Store 
 files of different groups of objects in different packages. */
 
+
 package main
 
 import (
-	"main/route"
-	"main/transport"
+	"travel/passenger"
+	"travel/route"
+	"travel/transport"
 )
 
 func main() {
-	bus := transport.NewBus("Bus 101")
-	train := transport.NewTrain("Train A")
-	plane := transport.NewPlane("Plane X")
+	bus := &transport.Bus{Name: "City Bus"}
+	train := &transport.Train{Name: "Express Train"}
+	plane := &transport.Plane{Name: "Boeing 747"}
 
-	myRoute := &route.Route{}
-	myRoute.AddVehicle(bus)
-	myRoute.AddVehicle(train)
-	myRoute.AddVehicle(plane)
+	travelRoute := &route.Route{}
+	travelRoute.AddVehicle(bus)
+	travelRoute.AddVehicle(train)
+	travelRoute.AddVehicle(plane)
 
-	myRoute.ShowRoute()
-
-	passenger := "John Doe"
-	myRoute.Travel(passenger)
+	traveler := &passenger.Passenger{Name: "John Doe"}
+	traveler.Travel(travelRoute)
 }
