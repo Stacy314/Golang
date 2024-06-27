@@ -1,3 +1,9 @@
+/*Write a program that creates 2 goroutines. The first goroutine generates random 
+numbers in a given range and sends them through the channel to the second goroutine. 
+The second goroutine receives the random numbers and finds the largest and smallest 
+number, then sends them back to the first goroutine through the channel. The first 
+goroutine displays the largest and smallest numbers on the screen.*/
+
 package main
 
 import (
