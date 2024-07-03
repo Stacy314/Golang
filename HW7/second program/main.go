@@ -12,8 +12,8 @@ import (
 	"time"
 )
 
-func generateNumbers(min, max int, outCh chan int, resultCh chan [2]int) {
-	for {
+func generateNumbers(min, max, count int, outCh chan int, resultCh chan [2]int, doneCh chan bool) {
+	for i := 0; i < count; i++ {
 		num := rand.Intn(max-min+1) + min
 		outCh <- num
 		time.Sleep(1 * time.Second)
@@ -21,9 +21,11 @@ func generateNumbers(min, max int, outCh chan int, resultCh chan [2]int) {
 		results := <-resultCh
 		fmt.Printf("Min: %d, Max: %d\n", results[0], results[1])
 	}
+	close(outCh)
+	doneCh <- true
 }
 
-func findMinMax(inCh chan int, outCh chan [2]int) {
+func findMinMax(inCh chan int, outCh chan [2]int, doneCh chan bool) {
 	var min, max int
 	first := true
 	for num := range inCh {
@@ -40,15 +42,22 @@ func findMinMax(inCh chan int, outCh chan [2]int) {
 		}
 		outCh <- [2]int{min, max}
 	}
+	close(outCh)
+	doneCh <- true
 }
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
+	numCount := 10
 	numCh := make(chan int)
 	resultCh := make(chan [2]int)
+	doneCh := make(chan bool, 2)
 
-	go generateNumbers(1, 100, numCh, resultCh)
-	go findMinMax(numCh, resultCh)
+	go generateNumbers(1, 100, numCount, numCh, resultCh, doneCh)
+	go findMinMax(numCh, resultCh, doneCh)
 
-	select {}
+	// Очікуємо завершення всіх горутин
+	for i := 0; i < 2; i++ {
+		<-doneCh
+	}
 }
