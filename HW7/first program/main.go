@@ -13,12 +13,13 @@ import (
 	"time"
 )
 
-func generateNumbers(ch chan int) {
-	for {
+func generateNumbers(ch chan int, count int) {
+	for i := 0; i < count; i++ {
 		num := rand.Intn(100)
 		ch <- num
 		time.Sleep(1 * time.Second)
 	}
+	close(ch)
 }
 
 func calculateAverage(inCh chan int, outCh chan float64) {
@@ -30,6 +31,7 @@ func calculateAverage(inCh chan int, outCh chan float64) {
 		average := float64(sum) / float64(count)
 		outCh <- average
 	}
+	close(outCh)
 }
 
 func printAverage(ch chan float64) {
@@ -40,12 +42,13 @@ func printAverage(ch chan float64) {
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
+	numCount := 10
 	numCh := make(chan int)
 	avgCh := make(chan float64)
 
-	go generateNumbers(numCh)
+	go generateNumbers(numCh, numCount)
 	go calculateAverage(numCh, avgCh)
 	go printAverage(avgCh)
 
-	select {}
+	time.Sleep(time.Duration(numCount+2) * time.Second)
 }
