@@ -1,3 +1,13 @@
+/*Create a program to simulate a group of people playing games on a big screen at the same time 
+(simulating a kahoot-like game https://www.youtube.com/watch?v=az1xm2Ij7rA). The program should 
+use a generator goroutine that generates a new game round (questions and answer options) every 
+10 seconds and sends it to the goroutine players via a channel. Players receive a new game round 
+and enter their answers through a separate channel. Next, the counter goroutine checks the 
+correctness of the answers and returns the result (the number of answers by options and/or the 
+total result of the game by players) to the main goroutine through a separate channel, which 
+displays the result of the round on the screen. If the user interrupts the program, the program 
+must properly terminate using the context.*/
+
 package main
 
 import (
