@@ -1,6 +1,7 @@
-/*Write your own/not your own biography, using all 
-the types and possibilities discussed in class. 
-Display it on the screen. 2*/
+/*Develop the "Zoo" program. Task: 5 or more animals have escaped, 
+the supervisor must collect them. Each entity (supervisor, animal, 
+cage, etc.) should be represented by a separate structure (zookeeper, 
+animal, cage). We use embedding and methods.*/
 
 package main
 
