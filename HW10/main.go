@@ -13,6 +13,9 @@ package main
 
 import (
 	"net/http"
+	"strconv"
+	"sync"
+
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -23,14 +26,21 @@ type Task struct {
 	Completed bool   `json:"completed"`
 }
 
-var tasks = []Task{}
-var nextID = 1
+var (
+	tasks  = []Task{}
+	nextID = 1
+	mu     sync.Mutex
+)
 
 func getTasks(c echo.Context) error {
+	mu.Lock()
+	defer mu.Unlock()
 	return c.JSON(http.StatusOK, tasks)
 }
 
 func addTask(c echo.Context) error {
+	mu.Lock()
+	defer mu.Unlock()
 	var task Task
 	if err := c.Bind(&task); err != nil {
 		return err
@@ -42,7 +52,13 @@ func addTask(c echo.Context) error {
 }
 
 func updateTask(c echo.Context) error {
-	id := c.Param("id")
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid task ID"})
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
 	var updatedTask Task
 	if err := c.Bind(&updatedTask); err != nil {
 		return err
@@ -58,7 +74,13 @@ func updateTask(c echo.Context) error {
 }
 
 func deleteTask(c echo.Context) error {
-	id := c.Param("id")
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid task ID"})
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
 	for i, task := range tasks {
 		if task.ID == id {
 			tasks = append(tasks[:i], tasks[i+1:]...)
