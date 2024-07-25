@@ -1,3 +1,8 @@
+/*2. Implement a search for words with a certain pattern in a text file. Task: Create a regular 
+expression that can be used to find words that match a certain pattern. For example, an expression 
+that finds words that start with vowels and end with consonants, or words that consist of two 
+identical letters separated by any character. The task is creative.*/
+
 package main
 
 import (

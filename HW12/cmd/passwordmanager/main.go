@@ -1,10 +1,21 @@
+/*Console password manager
+Write a console program for storing passwords (a simplified analogue of 
+the pass utility in UNIX). Password encryption is not implemented in this work.
+Functionality:
+* display names of saved passwords
+* save password by name (password entry through fmt.Scan)
+* get saved password
+Additional conditions:
+* we use tracer bullet development, that is, we write iteratively
+* save the state in a file (so that passwords can be viewed between runs)
+* use the recommended package structure (cmd, internal, ...)*/
+
 package main
 
 import (
-	"bufio"
+	"flag"
 	"fmt"
 	"os"
-	"strings"
 
 	"HW13/internal/passwordmanager"
 )
@@ -16,53 +27,52 @@ func main() {
 		return
 	}
 
-	scanner := bufio.NewScanner(os.Stdin)
-	for {
-		fmt.Println("\nВиберіть дію:")
-		fmt.Println("1. Вивести назви збережених паролів")
-		fmt.Println("2. Зберегти новий пароль")
-		fmt.Println("3. Дістати збережений пароль")
-		fmt.Println("4. Вихід")
-		fmt.Print("Ваш вибір: ")
+	listCmd := flag.NewFlagSet("list", flag.ExitOnError)
+	putCmd := flag.NewFlagSet("put", flag.ExitOnError)
+	getCmd := flag.NewFlagSet("get", flag.ExitOnError)
 
-		scanner.Scan()
-		choice := scanner.Text()
+	putName := putCmd.String("name", "", "Назва паролю")
+	putPassword := putCmd.String("password", "", "Пароль")
 
-		switch choice {
-		case "1":
-			fmt.Println("Назви збережених паролів:")
-			for _, name := range manager.ListNames() {
-				fmt.Println(name)
-			}
-		case "2":
-			fmt.Print("Введіть назву паролю: ")
-			scanner.Scan()
-			name := scanner.Text()
+	getName := getCmd.String("name", "", "Назва паролю")
 
-			fmt.Print("Введіть пароль: ")
-			scanner.Scan()
-			password := scanner.Text()
+	if len(os.Args) < 2 {
+		fmt.Println("Не вказано команду. Використовуйте 'list', 'put', або 'get'.")
+		return
+	}
 
-			if err := manager.SavePassword(name, password); err != nil {
-				fmt.Println("Помилка при збереженні паролю:", err)
-			} else {
-				fmt.Println("Пароль успішно збережено")
-			}
-		case "3":
-			fmt.Print("Введіть назву паролю: ")
-			scanner.Scan()
-			name := scanner.Text()
-
-			password, err := manager.GetPassword(name)
-			if err != nil {
-				fmt.Println("Помилка при отриманні паролю:", err)
-			} else {
-				fmt.Println("Пароль для", name, ":", password)
-			}
-		case "4":
-			return
-		default:
-			fmt.Println("Невідомий вибір, спробуйте ще раз.")
+	switch os.Args[1] {
+	case "list":
+		listCmd.Parse(os.Args[2:])
+		names := manager.ListNames()
+		fmt.Println("Назви збережених паролів:")
+		for _, name := range names {
+			fmt.Println(name)
 		}
+	case "put":
+		putCmd.Parse(os.Args[2:])
+		if *putName == "" || *putPassword == "" {
+			fmt.Println("Необхідно вказати назву та пароль.")
+			return
+		}
+		if err := manager.SavePassword(*putName, *putPassword); err != nil {
+			fmt.Println("Помилка при збереженні паролю:", err)
+		} else {
+			fmt.Println("Пароль успішно збережено")
+		}
+	case "get":
+		getCmd.Parse(os.Args[2:])
+		if *getName == "" {
+			fmt.Println("Необхідно вказати назву паролю.")
+			return
+		}
+		password, err := manager.GetPassword(*getName)
+		if err != nil {
+			fmt.Println("Помилка при отриманні паролю:", err)
+		} else {
+			fmt.Println("Пароль для", *getName, ":", password)
+		}
+	default:
+		fmt.Println("Невідома команда. Використовуйте 'list', 'put', або 'get'.")
 	}
 }
