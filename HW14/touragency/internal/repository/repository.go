@@ -3,7 +3,6 @@ package repository
 import (
 	"errors"
 	"sync"
-	"time"
 
 	"touragency/models"
 )
@@ -27,6 +26,9 @@ func NewRepository() *Repository {
 }
 
 func (r *Repository) GetTours() []models.Tour {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	
 	return r.tours
 }
 
@@ -41,29 +43,18 @@ func (r *Repository) AddOrder(tourID int, email string) (models.Order, error) {
 				TourID: tourID,
 				Email:  email,
 				Date:   time.Now(),
-				Status: "майбутній",
 			}
 			r.orders = append(r.orders, order)
 			r.nextID++
 			return order, nil
 		}
 	}
-	return models.Order{}, errors.New("тур не знайдено")
+	return models.Order{}, errors.New("Тур не знайдено")
 }
 
 func (r *Repository) GetOrders() []models.Order {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-
-	now := time.Now()
-	for i := range r.orders {
-		if r.orders[i].Date.After(now) {
-			r.orders[i].Status = "майбутній"
-		} else if r.orders[i].Date.Add(24*time.Hour).After(now) {
-			r.orders[i].Status = "триває"
-		} else {
-			r.orders[i].Status = "завершився"
-		}
-	}
+	
 	return r.orders
 }

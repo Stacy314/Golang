@@ -1,10 +1,10 @@
 package service
 
 import (
-	"errors"
-	"log"
+	"time"
+
 	"touragency/models"
-	"touragency/internal/repository"
+	"touragency/repository"
 )
 
 type Service struct {
@@ -15,19 +15,22 @@ func NewService(repo *repository.Repository) *Service {
 	return &Service{repo: repo}
 }
 
-func (s *Service) GetTours() []models.Tour {
-	return s.repo.GetTours()
-}
-
 func (s *Service) AddOrder(tourID int, email string) (models.Order, error) {
-	order, err := s.repo.AddOrder(tourID, email)
-	if err != nil {
-		return models.Order{}, err
-	}
-	log.Printf("Email відправлено на %s для замовлення %d", email, order.ID)
-	return order, nil
+	return s.repo.AddOrder(tourID, email)
 }
 
 func (s *Service) GetOrders() []models.Order {
-	return s.repo.GetOrders()
+	orders := s.repo.GetOrders()
+	now := time.Now()
+	
+	for i := range orders {
+		if orders[i].Date.After(now) {
+			orders[i].Status = "Майбутній"
+		} else if orders[i].Date.Add(24*time.Hour).After(now) {
+			orders[i].Status = "Триває"
+		} else {
+			orders[i].Status = "Завершився"
+		}
+	}
+	return orders
 }
