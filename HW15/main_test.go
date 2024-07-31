@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"testing"
 
 	"github.com/labstack/echo/v4"
@@ -64,7 +63,6 @@ func TestAddTask(t *testing.T) {
 func TestUpdateTask(t *testing.T) {
 	e := setupEcho()
 
-	// Додаємо завдання для оновлення
 	tasks = append(tasks, Task{ID: 1, Title: "Initial Task", Completed: false})
 
 	updatedTask := Task{Title: "Updated Task", Completed: true}
@@ -86,7 +84,6 @@ func TestUpdateTask(t *testing.T) {
 		assert.Equal(t, 1, updatedTaskResp.ID)
 	}
 
-	// Негативний тест: оновлення неіснуючого завдання
 	req = httptest.NewRequest(http.MethodPut, "/tasks/999", bytes.NewReader(taskJSON))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec = httptest.NewRecorder()
@@ -102,7 +99,6 @@ func TestUpdateTask(t *testing.T) {
 func TestDeleteTask(t *testing.T) {
 	e := setupEcho()
 
-	// Додаємо завдання для видалення
 	tasks = append(tasks, Task{ID: 1, Title: "Task to delete", Completed: false})
 
 	req := httptest.NewRequest(http.MethodDelete, "/tasks/1", nil)
@@ -115,7 +111,6 @@ func TestDeleteTask(t *testing.T) {
 		assert.Equal(t, http.StatusNoContent, rec.Code)
 	}
 
-	// Негативний тест: видалення неіснуючого завдання
 	req = httptest.NewRequest(http.MethodDelete, "/tasks/999", nil)
 	rec = httptest.NewRecorder()
 	c = e.NewContext(req, rec)
@@ -130,7 +125,6 @@ func TestDeleteTask(t *testing.T) {
 func TestFunctional_AddAndGetTasks(t *testing.T) {
 	e := setupEcho()
 
-	// Додаємо завдання
 	task := Task{Title: "Functional Test Task", Completed: false}
 	taskJSON, _ := json.Marshal(task)
 
@@ -148,7 +142,6 @@ func TestFunctional_AddAndGetTasks(t *testing.T) {
 		assert.Equal(t, 1, createdTask.ID)
 	}
 
-	// Отримуємо список завдань
 	req = httptest.NewRequest(http.MethodGet, "/tasks", nil)
 	rec = httptest.NewRecorder()
 	c = e.NewContext(req, rec)

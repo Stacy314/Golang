@@ -1,3 +1,10 @@
+/*Add to the REST API implementation in the task HW14 (Layered REST) ​​or HW10 (REST) ​​data storage in a relational database.
+Additional conditions:
+* use one of the popular SQL RDBMS (MySQL, Postgres,...)
+* add a docker-compose file to run the database locally in Docker
+* use any library to connect to a SQL database
+* describe the database scheme (ideally, in the form of migration)*/
+
 package main
 
 import (
@@ -17,9 +24,8 @@ type Task struct {
 	Completed bool   `json:"completed"`
 }
 
-var db *pgxpool.Pool
-
 func getTasks(c echo.Context) error {
+	db := c.Get("db").(*pgxpool.Pool)
 	rows, err := db.Query(context.Background(), "SELECT id, title, completed FROM tasks")
 	if err != nil {
 		return err
@@ -39,6 +45,7 @@ func getTasks(c echo.Context) error {
 }
 
 func addTask(c echo.Context) error {
+	db := c.Get("db").(*pgxpool.Pool)
 	var task Task
 	if err := c.Bind(&task); err != nil {
 		return err
@@ -53,7 +60,12 @@ func addTask(c echo.Context) error {
 }
 
 func updateTask(c echo.Context) error {
-	id, _ := strconv.Atoi(c.Param("id"))
+	db := c.Get("db").(*pgxpool.Pool)
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid task ID"})
+	}
+
 	var updatedTask Task
 	if err := c.Bind(&updatedTask); err != nil {
 		return err
@@ -74,7 +86,11 @@ func updateTask(c echo.Context) error {
 }
 
 func deleteTask(c echo.Context) error {
-	id, _ := strconv.Atoi(c.Param("id"))
+	db := c.Get("db").(*pgxpool.Pool)
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid task ID"})
+	}
 
 	commandTag, err := db.Exec(context.Background(), "DELETE FROM tasks WHERE id=$1", id)
 	if err != nil {
@@ -87,16 +103,23 @@ func deleteTask(c echo.Context) error {
 }
 
 func main() {
-	var err error
-	db, err = pgxpool.Connect(context.Background(), "postgres://user:password@localhost:5432/tasksdb")
+	db, err := pgxpool.Connect(context.Background(), "postgres://user:password@localhost:5432/tasksdb")
 	if err != nil {
 		log.Fatal("Unable to connect to database:", err)
 	}
 	defer db.Close()
 
 	e := echo.New()
+
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
+
+	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			c.Set("db", db)
+			return next(c)
+		}
+	})
 
 	e.GET("/tasks", getTasks)
 	e.POST("/tasks", addTask)
