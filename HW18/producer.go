@@ -1,12 +1,12 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
-	"math/rand"
-	"time"
+    "encoding/json"
+    "fmt"
+    "math/rand"
+    "time"
 
-	"github.com/Shopify/sarama"
+    "github.com/IBM/sarama"
 )
 
 type Orange struct {
@@ -15,6 +15,8 @@ type Orange struct {
 
 func produceOranges(brokers []string, topic string) {
 	config := sarama.NewConfig()
+	config.Producer.Return.Successes = true
+
 	producer, err := sarama.NewSyncProducer(brokers, config)
 	if err != nil {
 		panic(err)
@@ -23,7 +25,7 @@ func produceOranges(brokers []string, topic string) {
 
 	for {
 		orange := Orange{
-			Size: rand.Intn(20) + 1, // Random size between 1 and 20 cm
+			Size: rand.Intn(20) + 1,
 		}
 		message, err := json.Marshal(orange)
 		if err != nil {
@@ -43,7 +45,7 @@ func produceOranges(brokers []string, topic string) {
 			fmt.Println("Sent orange:", orange)
 		}
 
-		time.Sleep(1 * time.Second) // Pause for 1 second before sending the next orange
+		time.Sleep(1 * time.Second)
 	}
 }
 

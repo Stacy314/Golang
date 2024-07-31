@@ -1,16 +1,15 @@
 package main
 
-import (
-	"encoding/json"
-	"fmt"
-	"os"
-	"os/signal"
-	"sync"
-	"syscall"
-	"time"
 
-	"github.com/Shopify/sarama"
+import (
+    "encoding/json"
+    "fmt"
+    "math/rand"
+    "time"
+
+    "github.com/IBM/sarama"
 )
+
 
 type Orange struct {
 	Size int `json:"size"`
