@@ -1,3 +1,13 @@
+/*Additional materials:
+https://redis.io/commands/;
+https://redis.io/docs/latest/develop/connect/clients/go/
+
+Add the Redis cache to the REST API implementation in the HW14 (Layered REST) ​​or HW10 (REST) ​​task:
+• we receive a request from the client;
+• check whether there is data in the cache, if there is — return it, if not — contact the database;
+• return the response from the database, while storing it in redis so that the database is not accessed next time.*/
+
+
 package main
 
 import (
@@ -33,37 +43,60 @@ func init() {
 	})
 }
 
-func getTasks(c echo.Context) error {
-	cacheKey := "tasks"
+func fetchFromCache(cacheKey string) ([]Task, error) {
 	cachedTasks, err := rdb.Get(ctx, cacheKey).Result()
 	if err == redis.Nil {
-		mu.Lock()
-		defer mu.Unlock()
-		tasksJSON, err := json.Marshal(tasks)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Error encoding tasks"})
-		}
-		err = rdb.Set(ctx, cacheKey, tasksJSON, 5*time.Minute).Err()
-		if err != nil {
-			c.Logger().Error("Error saving to cache:", err)
-		}
-		return c.JSON(http.StatusOK, tasks)
+		return nil, nil
 	} else if err != nil {
-		c.Logger().Error("Error fetching from cache:", err)
-		return c.JSON(http.StatusOK, tasks)
+		return nil, err
 	}
 
 	var cachedTasksList []Task
 	err = json.Unmarshal([]byte(cachedTasks), &cachedTasksList)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Error decoding cache"})
+		return nil, err
 	}
-	return c.JSON(http.StatusOK, cachedTasksList)
+	return cachedTasksList, nil
+}
+
+func saveToCache(cacheKey string, tasks []Task) error {
+	tasksJSON, err := json.Marshal(tasks)
+	if err != nil {
+		return err
+	}
+	return rdb.Set(ctx, cacheKey, tasksJSON, 5*time.Minute).Err()
+}
+
+func clearCache(cacheKey string) error {
+	return rdb.Del(ctx, cacheKey).Err()
+}
+
+func getTasks(c echo.Context) error {
+	cacheKey := "tasks"
+	cachedTasks, err := fetchFromCache(cacheKey)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Error fetching from cache"})
+	}
+	if cachedTasks == nil {
+		mu.Lock()
+		defer mu.Unlock()
+		return handleCacheMiss(c, cacheKey)
+	}
+	return c.JSON(http.StatusOK, cachedTasks)
+}
+
+func handleCacheMiss(c echo.Context, cacheKey string) error {
+	err := saveToCache(cacheKey, tasks)
+	if err != nil {
+		c.Logger().Error("Error saving to cache:", err)
+	}
+	return c.JSON(http.StatusOK, tasks)
 }
 
 func addTask(c echo.Context) error {
 	mu.Lock()
 	defer mu.Unlock()
+
 	var task Task
 	if err := c.Bind(&task); err != nil {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid task data"})
@@ -71,8 +104,8 @@ func addTask(c echo.Context) error {
 	task.ID = nextID
 	nextID++
 	tasks = append(tasks, task)
-	err := rdb.Del(ctx, "tasks").Err()
-	if err != nil {
+
+	if err := clearCache("tasks"); err != nil {
 		c.Logger().Error("Error clearing cache:", err)
 	}
 
@@ -86,6 +119,7 @@ func updateTask(c echo.Context) error {
 	}
 	mu.Lock()
 	defer mu.Unlock()
+
 	var updatedTask Task
 	if err := c.Bind(&updatedTask); err != nil {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid task data"})
@@ -94,8 +128,7 @@ func updateTask(c echo.Context) error {
 		if task.ID == id {
 			tasks[i].Title = updatedTask.Title
 			tasks[i].Completed = updatedTask.Completed
-			err := rdb.Del(ctx, "tasks").Err()
-			if err != nil {
+			if err := clearCache("tasks"); err != nil {
 				c.Logger().Error("Error clearing cache:", err)
 			}
 			return c.JSON(http.StatusOK, tasks[i])
@@ -111,11 +144,11 @@ func deleteTask(c echo.Context) error {
 	}
 	mu.Lock()
 	defer mu.Unlock()
+
 	for i, task := range tasks {
 		if task.ID == id {
 			tasks = append(tasks[:i], tasks[i+1:]...)
-			err := rdb.Del(ctx, "tasks").Err()
-			if err != nil {
+			if err := clearCache("tasks"); err != nil {
 				c.Logger().Error("Error clearing cache:", err)
 			}
 			return c.NoContent(http.StatusNoContent)
@@ -136,3 +169,4 @@ func main() {
 
 	e.Logger.Fatal(e.Start(":8080"))
 }
+
