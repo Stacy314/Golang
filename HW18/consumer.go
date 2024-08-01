@@ -1,80 +1,67 @@
 package main
 
-
 import (
-    "encoding/json"
-    "fmt"
-    "math/rand"
-    "time"
+	"context"
+	"encoding/json"
+	"fmt"
+	"time"
 
-    "github.com/IBM/sarama"
+	"github.com/segmentio/kafka-go"
 )
-
 
 type Orange struct {
 	Size int `json:"size"`
 }
 
 type Basket struct {
-	small  int
-	medium int
-	large  int
-	mu     sync.Mutex
+	Small  int
+	Medium int
+	Large  int
 }
 
-func (b *Basket) addOrange(size int) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-
-	if size <= 5 {
-		b.small++
-	} else if size <= 10 {
-		b.medium++
-	} else {
-		b.large++
-	}
-}
-
-func (b *Basket) printCounts() {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-
-	fmt.Printf("Oranges: small=%d, medium=%d, large=%d\n", b.small, b.medium, b.large)
-}
-
-func consumeOranges(brokers []string, topic string, basket *Basket) {
-	config := sarama.NewConfig()
-	consumer, err := sarama.NewConsumer(brokers, config)
-	if err != nil {
-		panic(err)
-	}
-	defer consumer.Close()
-
-	partitionConsumer, err := consumer.ConsumePartition(topic, 0, sarama.OffsetNewest)
-	if err != nil {
-		panic(err)
-	}
-	defer partitionConsumer.Close()
-
-	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+func consumeOranges(topic string, brokerAddress string, basket *Basket) {
+	reader := kafka.NewReader(kafka.ReaderConfig{
+		Brokers: []string{brokerAddress},
+		Topic:   topic,
+		GroupID: "orange-consumers",
+	})
 
 	for {
-		select {
-		case msg := <-partitionConsumer.Messages():
-			var orange Orange
-			err := json.Unmarshal(msg.Value, &orange)
-			if err != nil {
-				fmt.Println("Failed to unmarshal orange:", err)
-				continue
-			}
-			basket.addOrange(orange.Size)
-		case <-signals:
-			return
+		m, err := reader.ReadMessage(context.Background())
+		if err != nil {
+			fmt.Printf("Error reading message from kafka: %v\n", err)
+			continue
+		}
+
+		var orange Orange
+		err = json.Unmarshal(m.Value, &orange)
+		if err != nil {
+			fmt.Printf("Error unmarshaling message: %v\n", err)
+			continue
+		}
+
+		if orange.Size < 7 {
+			basket.Small++
+		} else if orange.Size < 15 {
+			basket.Medium++
+		} else {
+			basket.Large++
 		}
 	}
 }
 
-func main() {
+func printStats(basket *Basket) {
+	for {
+		time.Sleep(10 * time.Second)
+		fmt.Printf("Oranges: small=%d, medium=%d, large=%d\n", basket.Small, basket.Medium, basket.Large)
+	}
+}
 
+func main() {
+	topic := "oranges"
+	brokerAddress := "localhost:9092"
+	basket := &Basket{}
+
+	go consumeOranges(topic, brokerAddress, basket)
+	printStats(basket)
 }

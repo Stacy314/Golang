@@ -1,48 +1,43 @@
 package main
 
 import (
-    "encoding/json"
-    "fmt"
-    "math/rand"
-    "time"
+	"context"
+	"encoding/json"
+	"fmt"
+	"math/rand"
+	"time"
 
-    "github.com/IBM/sarama"
+	"github.com/segmentio/kafka-go"
 )
 
 type Orange struct {
 	Size int `json:"size"`
 }
 
-func produceOranges(brokers []string, topic string) {
-	config := sarama.NewConfig()
-	config.Producer.Return.Successes = true
-
-	producer, err := sarama.NewSyncProducer(brokers, config)
-	if err != nil {
-		panic(err)
+func produceOranges(topic string, brokerAddress string) {
+	writer := kafka.Writer{
+		Addr:     kafka.TCP(brokerAddress),
+		Topic:    topic,
+		Balancer: &kafka.LeastBytes{},
 	}
-	defer producer.Close()
 
 	for {
-		orange := Orange{
-			Size: rand.Intn(20) + 1,
-		}
+		orange := Orange{Size: rand.Intn(20) + 1}
 		message, err := json.Marshal(orange)
 		if err != nil {
-			fmt.Println("Failed to marshal orange:", err)
+			fmt.Printf("Error marshaling orange: %v\n", err)
 			continue
 		}
 
-		msg := &sarama.ProducerMessage{
-			Topic: topic,
-			Value: sarama.ByteEncoder(message),
-		}
-
-		_, _, err = producer.SendMessage(msg)
+		err = writer.WriteMessages(
+			context.Background(),
+			kafka.Message{
+				Key:   []byte(fmt.Sprintf("key-%d", orange.Size)),
+				Value: message,
+			},
+		)
 		if err != nil {
-			fmt.Println("Failed to send message:", err)
-		} else {
-			fmt.Println("Sent orange:", orange)
+			fmt.Printf("Error writing message to kafka: %v\n", err)
 		}
 
 		time.Sleep(1 * time.Second)
@@ -50,9 +45,8 @@ func produceOranges(brokers []string, topic string) {
 }
 
 func main() {
-	brokers := []string{"localhost:9092"}
 	topic := "oranges"
+	brokerAddress := "localhost:9092"
 
-	rand.Seed(time.Now().UnixNano())
-	produceOranges(brokers, topic)
+	produceOranges(topic, brokerAddress)
 }
