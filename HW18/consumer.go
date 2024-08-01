@@ -76,16 +76,5 @@ func consumeOranges(brokers []string, topic string, basket *Basket) {
 }
 
 func main() {
-	brokers := []string{"localhost:9092"}
-	topic := "oranges"
-	basket := &Basket{}
 
-	go func() {
-		for {
-			time.Sleep(10 * time.Second)
-			basket.printCounts()
-		}
-	}()
-
-	consumeOranges(brokers, topic, basket)
 }

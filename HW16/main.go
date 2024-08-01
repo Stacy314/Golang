@@ -1,3 +1,10 @@
+/*Add to the REST API implementation in the task HW14 (Layered REST) ​​or HW10 (REST) ​​data storage in a relational database.
+Additional conditions:
+* use one of the popular SQL RDBMS (MySQL, Postgres,...)
+* add a docker-compose file to run the database locally in Docker
+* use any library to connect to a SQL database
+* describe the database scheme (ideally, in the form of migration)*/
+
 package main
 
 import (
