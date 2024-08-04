@@ -1,52 +1,37 @@
 package main
 
 import (
-	"context"
-	"encoding/json"
-	"fmt"
-	"math/rand"
-	"time"
-
-	"github.com/segmentio/kafka-go"
+    "fmt"
+    "math/rand"
+    "sync"
+    "time"
 )
 
-type Orange struct {
-	Size int `json:"size"`
-}
+var wg sync.WaitGroup
 
-func produceOranges(topic string, brokerAddress string) {
-	writer := kafka.Writer{
-		Addr:     kafka.TCP(brokerAddress),
-		Topic:    topic,
-		Balancer: &kafka.LeastBytes{},
-	}
+func Producer(id int, ch chan<- int) {
+    ticker := time.NewTicker(1 * time.Second)
+    defer ticker.Stop()
 
-	for {
-		orange := Orange{Size: rand.Intn(20) + 1}
-		message, err := json.Marshal(orange)
-		if err != nil {
-			fmt.Printf("Error marshaling orange: %v\n", err)
-			continue
-		}
+    defer wg.Done()
 
-		err = writer.WriteMessages(
-			context.Background(),
-			kafka.Message{
-				Key:   []byte(fmt.Sprintf("key-%d", orange.Size)),
-				Value: message,
-			},
-		)
-		if err != nil {
-			fmt.Printf("Error writing message to kafka: %v\n", err)
-		}
-
-		time.Sleep(1 * time.Second)
-	}
+    for {
+        select {
+        case <-ticker.C:
+            num := rand.Intn(100)
+            fmt.Printf("Producer %d produced %d\n", id, num)
+            ch <- num
+        }
+    }
 }
 
 func main() {
-	topic := "oranges"
-	brokerAddress := "localhost:9092"
+    ch := make(chan int)
 
-	produceOranges(topic, brokerAddress)
+    wg.Add(2)
+    go Producer(1, ch)
+    go Consumer(1, ch)
+
+    wg.Wait()
 }
+
