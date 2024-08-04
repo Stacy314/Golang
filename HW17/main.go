@@ -14,6 +14,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -30,7 +31,7 @@ type Task struct {
 }
 
 var (
-	tasks   = []Task{}
+	tasks   = []Task{} 
 	nextID  = 1
 	mu      sync.Mutex
 	rdb     *redis.Client
@@ -38,8 +39,13 @@ var (
 )
 
 func init() {
+	redisAddr := os.Getenv("REDIS_ADDR")
+	if redisAddr == "" {
+		redisAddr = "localhost:6379"
+	}
+
 	rdb = redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
+		Addr: redisAddr,
 	})
 }
 
@@ -71,26 +77,33 @@ func clearCache(cacheKey string) error {
 	return rdb.Del(ctx, cacheKey).Err()
 }
 
+func fetchTasksFromDB() ([]Task, error) {
+	mu.Lock()
+	defer mu.Unlock()
+	return tasks, nil
+}
+
 func getTasks(c echo.Context) error {
 	cacheKey := "tasks"
 	cachedTasks, err := fetchFromCache(cacheKey)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Error fetching from cache"})
 	}
-	if cachedTasks == nil {
-		mu.Lock()
-		defer mu.Unlock()
-		return handleCacheMiss(c, cacheKey)
+	if cachedTasks != nil {
+		return c.JSON(http.StatusOK, cachedTasks)
 	}
-	return c.JSON(http.StatusOK, cachedTasks)
-}
 
-func handleCacheMiss(c echo.Context, cacheKey string) error {
-	err := saveToCache(cacheKey, tasks)
+	tasksFromDB, err := fetchTasksFromDB()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Error fetching from database"})
+	}
+
+	err = saveToCache(cacheKey, tasksFromDB)
 	if err != nil {
 		c.Logger().Error("Error saving to cache:", err)
 	}
-	return c.JSON(http.StatusOK, tasks)
+
+	return c.JSON(http.StatusOK, tasksFromDB)
 }
 
 func addTask(c echo.Context) error {
@@ -169,4 +182,3 @@ func main() {
 
 	e.Logger.Fatal(e.Start(":8080"))
 }
-
