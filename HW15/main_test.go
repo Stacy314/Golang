@@ -42,6 +42,9 @@ func TestGetTasks(t *testing.T) {
 func TestAddTask(t *testing.T) {
 	e := setupEcho()
 
+	tasks = []Task{}
+	nextID = 1
+
 	task := Task{Title: "Test Task", Completed: false}
 	taskJSON, _ := json.Marshal(task)
 
@@ -63,6 +66,8 @@ func TestAddTask(t *testing.T) {
 func TestUpdateTask(t *testing.T) {
 	e := setupEcho()
 
+	tasks = []Task{}
+	nextID = 1
 	tasks = append(tasks, Task{ID: 1, Title: "Initial Task", Completed: false})
 
 	updatedTask := Task{Title: "Updated Task", Completed: true}
@@ -99,6 +104,8 @@ func TestUpdateTask(t *testing.T) {
 func TestDeleteTask(t *testing.T) {
 	e := setupEcho()
 
+	tasks = []Task{}
+	nextID = 1
 	tasks = append(tasks, Task{ID: 1, Title: "Task to delete", Completed: false})
 
 	req := httptest.NewRequest(http.MethodDelete, "/tasks/1", nil)
@@ -124,6 +131,9 @@ func TestDeleteTask(t *testing.T) {
 
 func TestFunctional_AddAndGetTasks(t *testing.T) {
 	e := setupEcho()
+
+	tasks = []Task{}
+	nextID = 1
 
 	task := Task{Title: "Functional Test Task", Completed: false}
 	taskJSON, _ := json.Marshal(task)
@@ -156,3 +166,4 @@ func TestFunctional_AddAndGetTasks(t *testing.T) {
 		assert.Equal(t, 1, tasks[0].ID)
 	}
 }
+
