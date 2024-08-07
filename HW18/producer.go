@@ -24,7 +24,6 @@ func Producer(id int, ch chan<- int, writer *kafka.Writer) {
             fmt.Printf("Producer %d produced %d\n", id, num)
             ch <- num
 
-            // Send the number to Kafka
             msg := kafka.Message{
                 Key:   []byte(fmt.Sprintf("Key-%d", id)),
                 Value: []byte(fmt.Sprintf("%d", num)),
@@ -50,7 +49,6 @@ func main() {
     wg.Add(1)
     go Producer(1, ch, kafkaWriter)
 
-    // Start the consumer in a separate goroutine
     go func() {
         Consumer(1, ch)
     }()
