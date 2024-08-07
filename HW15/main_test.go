@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/labstack/echo/v4"
@@ -29,13 +30,29 @@ func setupEcho() *echo.Echo {
 func TestGetTasks(t *testing.T) {
 	e := setupEcho()
 
+	// Empty task list
+	tasks = []Task{}
 	req := httptest.NewRequest(http.MethodGet, "/tasks", nil)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
 	if assert.NoError(t, getTasks(c)) {
 		assert.Equal(t, http.StatusOK, rec.Code)
-		assert.Equal(t, "[]", rec.Body.String())
+		assert.Equal(t, "[]", strings.TrimSpace(rec.Body.String()))
+	}
+
+	// Non-empty task list
+	tasks = append(tasks, Task{ID: 1, Title: "Test Task", Completed: false})
+	req = httptest.NewRequest(http.MethodGet, "/tasks", nil)
+	rec = httptest.NewRecorder()
+	c = e.NewContext(req, rec)
+
+	if assert.NoError(t, getTasks(c)) {
+		assert.Equal(t, http.StatusOK, rec.Code)
+		var retrievedTasks []Task
+		json.Unmarshal(rec.Body.Bytes(), &retrievedTasks)
+		assert.Equal(t, 1, len(retrievedTasks))
+		assert.Equal(t, "Test Task", retrievedTasks[0].Title)
 	}
 }
 
@@ -61,6 +78,15 @@ func TestAddTask(t *testing.T) {
 		assert.Equal(t, task.Completed, createdTask.Completed)
 		assert.Equal(t, 1, createdTask.ID)
 	}
+
+	// Test invalid JSON
+	req = httptest.NewRequest(http.MethodPost, "/tasks", bytes.NewReader([]byte(`invalid json`)))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec = httptest.NewRecorder()
+	c = e.NewContext(req, rec)
+
+	err := addTask(c)
+	assert.Error(t, err)
 }
 
 func TestUpdateTask(t *testing.T) {
@@ -73,6 +99,7 @@ func TestUpdateTask(t *testing.T) {
 	updatedTask := Task{Title: "Updated Task", Completed: true}
 	taskJSON, _ := json.Marshal(updatedTask)
 
+	// Positive case: Task exists
 	req := httptest.NewRequest(http.MethodPut, "/tasks/1", bytes.NewReader(taskJSON))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
@@ -89,6 +116,7 @@ func TestUpdateTask(t *testing.T) {
 		assert.Equal(t, 1, updatedTaskResp.ID)
 	}
 
+	// Negative case: Task does not exist
 	req = httptest.NewRequest(http.MethodPut, "/tasks/999", bytes.NewReader(taskJSON))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec = httptest.NewRecorder()
@@ -99,6 +127,18 @@ func TestUpdateTask(t *testing.T) {
 	err := updateTask(c)
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusNotFound, rec.Code)
+
+	// Negative case: Invalid task ID
+	req = httptest.NewRequest(http.MethodPut, "/tasks/invalid", bytes.NewReader(taskJSON))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec = httptest.NewRecorder()
+	c = e.NewContext(req, rec)
+	c.SetParamNames("id")
+	c.SetParamValues("invalid")
+
+	err = updateTask(c)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
 }
 
 func TestDeleteTask(t *testing.T) {
@@ -108,6 +148,7 @@ func TestDeleteTask(t *testing.T) {
 	nextID = 1
 	tasks = append(tasks, Task{ID: 1, Title: "Task to delete", Completed: false})
 
+	// Positive case: Task exists
 	req := httptest.NewRequest(http.MethodDelete, "/tasks/1", nil)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
@@ -118,6 +159,7 @@ func TestDeleteTask(t *testing.T) {
 		assert.Equal(t, http.StatusNoContent, rec.Code)
 	}
 
+	// Negative case: Task does not exist
 	req = httptest.NewRequest(http.MethodDelete, "/tasks/999", nil)
 	rec = httptest.NewRecorder()
 	c = e.NewContext(req, rec)
@@ -127,6 +169,17 @@ func TestDeleteTask(t *testing.T) {
 	err := deleteTask(c)
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusNotFound, rec.Code)
+
+	// Negative case: Invalid task ID
+	req = httptest.NewRequest(http.MethodDelete, "/tasks/invalid", nil)
+	rec = httptest.NewRecorder()
+	c = e.NewContext(req, rec)
+	c.SetParamNames("id")
+	c.SetParamValues("invalid")
+
+	err = deleteTask(c)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
 }
 
 func TestFunctional_AddAndGetTasks(t *testing.T) {
@@ -138,6 +191,7 @@ func TestFunctional_AddAndGetTasks(t *testing.T) {
 	task := Task{Title: "Functional Test Task", Completed: false}
 	taskJSON, _ := json.Marshal(task)
 
+	// Add task
 	req := httptest.NewRequest(http.MethodPost, "/tasks", bytes.NewReader(taskJSON))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
@@ -152,6 +206,7 @@ func TestFunctional_AddAndGetTasks(t *testing.T) {
 		assert.Equal(t, 1, createdTask.ID)
 	}
 
+	// Get tasks
 	req = httptest.NewRequest(http.MethodGet, "/tasks", nil)
 	rec = httptest.NewRecorder()
 	c = e.NewContext(req, rec)
@@ -166,4 +221,3 @@ func TestFunctional_AddAndGetTasks(t *testing.T) {
 		assert.Equal(t, 1, tasks[0].ID)
 	}
 }
-
